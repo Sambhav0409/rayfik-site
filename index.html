@@ -3,517 +3,237 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Rayfik Robotics — Autonomous Precision Systems</title>
+<title>Rayfik Robotics — Perception-Driven Terminal Guidance</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
 <style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
-  --bg:#080b0f; --bg2:#0e1219; --bg3:#141b24;
-  --electric:#00d4ff; --slate:#dde6ef; --muted:#7a8fa3;
-  --border:rgba(0,212,255,0.12);
+  --bg:#05070a; --bg2:#0a0e14; --bg3:#101620;
+  --electric:#00f2ff; --warning:#ff3e3e; --slate:#e2e8f0; --muted:#64748b;
+  --border:rgba(0, 242, 255, 0.15);
   --font-d:'Bebas Neue',sans-serif;
-  --font-b:'DM Sans',sans-serif;
   --font-m:'Space Mono',monospace;
+  --font-s:'Inter',sans-serif;
 }
-html{scroll-behavior:smooth;}
-body{background:var(--bg);color:var(--slate);font-family:var(--font-b);font-weight:300;line-height:1.7;overflow-x:hidden;cursor:none;}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { 
+    background: var(--bg); color: var(--slate); font-family: var(--font-s); 
+    overflow-x: hidden; line-height: 1.6;
+}
 
-/* CURSOR */
-#cursor{position:fixed;z-index:9999;pointer-events:none;width:10px;height:10px;border-radius:50%;background:var(--electric);transform:translate(-50%,-50%);transition:width .2s,height .2s;mix-blend-mode:screen;}
-#cursor-ring{position:fixed;z-index:9998;pointer-events:none;width:36px;height:36px;border-radius:50%;border:1px solid rgba(0,212,255,.5);transform:translate(-50%,-50%);transition:all .12s ease;}
-
-/* CANVAS */
-#bg-canvas{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.4;}
+/* SCANLINE EFFECT */
+body::before {
+    content: ""; position: fixed; inset: 0; 
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+    z-index: 999; background-size: 100% 4px, 3px 100%; pointer-events: none;
+}
 
 /* NAV */
-nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:1.3rem 5%;background:rgba(8,11,15,.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);transform:translateY(-100%);animation:slideDown .8s .3s cubic-bezier(.22,1,.36,1) forwards;}
-@keyframes slideDown{to{transform:translateY(0);}}
-.logo{font-family:var(--font-d);font-size:1.9rem;letter-spacing:.18em;color:var(--slate);text-decoration:none;}
-.logo em{color:var(--electric);font-style:normal;}
-.nav-links{display:flex;gap:2.5rem;list-style:none;}
-.nav-links a{font-family:var(--font-m);font-size:.63rem;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);text-decoration:none;transition:color .25s;position:relative;}
-.nav-links a::after{content:'';position:absolute;bottom:-4px;left:0;right:0;height:1px;background:var(--electric);transform:scaleX(0);transition:transform .3s;}
-.nav-links a:hover{color:var(--electric);}
-.nav-links a:hover::after{transform:scaleX(1);}
-.nav-cta{font-family:var(--font-m);font-size:.66rem;letter-spacing:.15em;text-transform:uppercase;background:transparent;border:1px solid var(--electric);color:var(--electric);padding:.58rem 1.5rem;cursor:none;transition:all .25s;}
-.nav-cta:hover{background:var(--electric);color:var(--bg);}
+nav {
+    position: fixed; top: 0; width: 100%; z-index: 1000;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 1.5rem 5%; background: rgba(5, 7, 10, 0.8); backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+}
+.logo { font-family: var(--font-d); font-size: 2rem; letter-spacing: 2px; color: var(--slate); text-decoration: none; }
+.logo span { color: var(--electric); }
+.nav-links { display: flex; gap: 2rem; list-style: none; }
+.nav-links a { font-family: var(--font-m); font-size: 0.7rem; color: var(--muted); text-decoration: none; text-transform: uppercase; transition: 0.3s; }
+.nav-links a:hover { color: var(--electric); }
 
-/* HERO */
-.hero{position:relative;z-index:1;min-height:100vh;display:grid;grid-template-columns:1fr 1fr;align-items:center;padding:0 5%;padding-top:5rem;overflow:hidden;}
-.hero-eyebrow{font-family:var(--font-m);font-size:.6rem;letter-spacing:.32em;text-transform:uppercase;color:var(--electric);margin-bottom:1.5rem;display:flex;align-items:center;gap:.75rem;opacity:0;animation:fadeUp .7s .8s ease forwards;}
-.hero-eyebrow::before{content:'';display:inline-block;width:2rem;height:1px;background:var(--electric);}
-.hero-headline{font-family:var(--font-d);font-size:clamp(3.5rem,6vw,7rem);line-height:.95;letter-spacing:.02em;color:var(--slate);margin-bottom:1.5rem;opacity:0;animation:fadeUp .7s 1s ease forwards;}
-.hero-headline .accent{color:var(--electric);}
-.hero-headline .outline{-webkit-text-stroke:1px var(--electric);color:transparent;}
-.hero-sub{font-size:1rem;color:var(--muted);max-width:44ch;margin-bottom:2.5rem;opacity:0;animation:fadeUp .7s 1.15s ease forwards;}
-.hero-btns{display:flex;gap:1rem;align-items:center;flex-wrap:wrap;opacity:0;animation:fadeUp .7s 1.3s ease forwards;}
-.btn-primary{font-family:var(--font-m);font-size:.68rem;letter-spacing:.15em;text-transform:uppercase;background:var(--electric);color:var(--bg);border:none;padding:.9rem 2rem;cursor:none;font-weight:700;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,0 100%);transition:opacity .2s,transform .2s;}
-.btn-primary:hover{opacity:.85;transform:translateY(-1px);}
-.btn-ghost{font-family:var(--font-m);font-size:.68rem;letter-spacing:.15em;text-transform:uppercase;background:transparent;color:var(--slate);border:none;cursor:none;display:flex;align-items:center;gap:.5rem;transition:color .25s;}
-.btn-ghost svg{transition:transform .3s;}
-.btn-ghost:hover{color:var(--electric);}
-.btn-ghost:hover svg{transform:translateX(4px);}
+/* HERO SECTION */
+.hero {
+    height: 100vh; display: grid; grid-template-columns: 1.2fr 1fr;
+    align-items: center; padding: 0 5%; position: relative;
+}
+.hero-content { z-index: 2; }
+.hero-tag { font-family: var(--font-m); color: var(--electric); font-size: 0.8rem; margin-bottom: 1rem; display: block; }
+.hero-title { font-family: var(--font-d); font-size: clamp(4rem, 8vw, 8rem); line-height: 0.9; margin-bottom: 2rem; }
+.hero-title em { font-style: normal; -webkit-text-stroke: 1px var(--electric); color: transparent; }
+.hero-desc { max-width: 500px; color: var(--muted); font-size: 1.1rem; margin-bottom: 2.5rem; }
 
-/* HERO VISUAL */
-.hero-visual{display:flex;align-items:center;justify-content:center;height:560px;position:relative;opacity:0;animation:fadeIn 1.2s 1.4s ease forwards;}
-.arm-svg{width:100%;max-width:420px;}
+/* TARGETING UI VISUAL */
+.hero-visual {
+    position: relative; height: 100%; display: flex; align-items: center; justify-content: center;
+}
+.viewport {
+    width: 100%; max-width: 500px; height: 350px; border: 1px solid var(--electric);
+    position: relative; background: rgba(0, 242, 255, 0.03); overflow: hidden;
+}
+.target-box {
+    position: absolute; width: 80px; height: 80px; border: 2px solid var(--warning);
+    top: 30%; left: 40%; transform: translate(-50%, -50%);
+    animation: track 6s infinite ease-in-out;
+}
+.target-box::before { content: "LOCK_ON: 98.4%"; position: absolute; top: -20px; left: 0; font-family: var(--font-m); font-size: 10px; color: var(--warning); white-space: nowrap; }
+.crosshair {
+    position: absolute; inset: 0; pointer-events: none;
+}
+.cross-v { position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: rgba(0, 242, 255, 0.2); }
+.cross-h { position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: rgba(0, 242, 255, 0.2); }
 
-/* ARM ANIMATIONS */
-@keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-14px);}}
-.arm-group{animation:float 4s ease-in-out infinite;}
-@keyframes rotateJoint{0%,100%{transform:rotate(-6deg);}50%{transform:rotate(6deg);}}
-.upper-arm{transform-origin:240px 280px;animation:rotateJoint 5s ease-in-out infinite;}
-@keyframes forearmSway{0%,100%{transform:rotate(0deg);}50%{transform:rotate(9deg);}}
-.forearm{transform-origin:240px 160px;animation:forearmSway 4.5s 1s ease-in-out infinite;}
-@keyframes gripperPulse{0%,100%{opacity:.95;}50%{opacity:.35;}}
-.gripper-tip{animation:gripperPulse 1.5s ease-in-out infinite;}
-@keyframes scanLine{0%{transform:translateY(0);opacity:1;}100%{transform:translateY(90px);opacity:0;}}
-.scan{animation:scanLine 2.8s ease-in-out infinite;}
-@keyframes telemBlink{0%,88%,100%{opacity:1;}95%{opacity:.15;}}
-.telem-dot{animation:telemBlink 3s ease-in-out infinite;}
+@keyframes track {
+    0%, 100% { top: 30%; left: 40%; }
+    25% { top: 60%; left: 70%; }
+    50% { top: 20%; left: 80%; }
+    75% { top: 70%; left: 20%; }
+}
 
-/* SCROLL HINT */
-.scroll-hint{position:absolute;bottom:2rem;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:.5rem;opacity:0;animation:fadeIn 1s 2s ease forwards;}
-.scroll-line{width:1px;height:3.5rem;background:linear-gradient(to bottom,var(--electric),transparent);animation:scrollPulse 2s ease-in-out infinite;}
-@keyframes scrollPulse{0%,100%{opacity:.3;}50%{opacity:1;}}
-.scroll-label{font-family:var(--font-m);font-size:.52rem;letter-spacing:.3em;color:rgba(0,212,255,.5);text-transform:uppercase;}
+/* DATA STRIP */
+.data-strip {
+    background: var(--bg2); border-y: 1px solid var(--border);
+    padding: 2rem 5%; display: flex; justify-content: space-around;
+    font-family: var(--font-m);
+}
+.data-item .val { color: var(--electric); display: block; font-size: 1.5rem; font-weight: bold; }
+.data-item .label { color: var(--muted); font-size: 0.7rem; text-transform: uppercase; }
 
-/* STATS */
-.stats-strip{position:relative;z-index:1;background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:3rem 5%;display:grid;grid-template-columns:repeat(4,1fr);}
-.stat-item{text-align:center;border-right:1px solid rgba(255,255,255,.05);padding:0 1rem;}
-.stat-item:last-child{border-right:none;}
-.stat-num{font-family:var(--font-d);font-size:3.2rem;color:var(--electric);letter-spacing:.05em;display:block;}
-.stat-label{font-family:var(--font-m);font-size:.6rem;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);}
-
-/* SECTIONS */
-.section{position:relative;z-index:1;padding:8rem 5%;}
-.section-tag{font-family:var(--font-m);font-size:.6rem;letter-spacing:.3em;text-transform:uppercase;color:var(--electric);margin-bottom:1rem;display:flex;align-items:center;gap:.75rem;}
-.section-tag::before{content:'';display:inline-block;width:1.5rem;height:1px;background:var(--electric);}
-.section-title{font-family:var(--font-d);font-size:clamp(2.6rem,4vw,4.2rem);letter-spacing:.03em;line-height:1;color:var(--slate);margin-bottom:4rem;}
-
-/* SERVICES */
-.services-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5px;background:var(--border);}
-.service-card{background:var(--bg2);padding:2.8rem 2.2rem;transition:background .3s,transform .3s;position:relative;overflow:hidden;}
-.service-card::before{content:'';position:absolute;top:0;left:0;height:2px;width:0;background:var(--electric);transition:width .4s ease;}
-.service-card:hover{background:var(--bg3);transform:translateY(-2px);}
-.service-card:hover::before{width:100%;}
-.service-num{font-family:var(--font-m);font-size:.6rem;letter-spacing:.2em;color:rgba(0,212,255,.35);margin-bottom:.75rem;}
-.service-icon{width:52px;height:52px;border:1px solid rgba(0,212,255,.25);display:flex;align-items:center;justify-content:center;margin-bottom:1.5rem;color:var(--electric);transition:border-color .3s,background .3s;}
-.service-card:hover .service-icon{border-color:var(--electric);background:rgba(0,212,255,.06);}
-.service-name{font-family:var(--font-d);font-size:1.75rem;letter-spacing:.05em;color:var(--slate);margin-bottom:1rem;line-height:1.1;}
-.service-desc{font-size:.88rem;color:var(--muted);line-height:1.75;}
-.service-link{display:inline-flex;align-items:center;gap:.5rem;margin-top:1.5rem;font-family:var(--font-m);font-size:.62rem;letter-spacing:.15em;text-transform:uppercase;color:var(--electric);text-decoration:none;border-bottom:1px solid transparent;transition:border-color .2s;}
-.service-link:hover{border-color:var(--electric);}
-
-/* ABOUT */
-.about-section{position:relative;z-index:1;background:var(--bg2);padding:8rem 5%;display:grid;grid-template-columns:1fr 1fr;gap:6rem;align-items:center;}
-.spec-frame{border:1px solid var(--border);padding:2rem;background:var(--bg3);position:relative;}
-.spec-frame::before{content:'SYSTEM SPECS';font-family:var(--font-m);font-size:.54rem;letter-spacing:.3em;color:rgba(0,212,255,.45);position:absolute;top:-10px;left:1.5rem;background:var(--bg3);padding:0 .5rem;}
-.spec-row{display:flex;justify-content:space-between;align-items:center;padding:.9rem 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:.85rem;}
-.spec-row:last-child{border-bottom:none;}
-.spec-key{font-family:var(--font-m);font-size:.67rem;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;}
-.spec-val{font-family:var(--font-m);font-size:.78rem;color:var(--electric);font-weight:700;}
-.about-body p{font-size:1rem;color:var(--muted);margin-bottom:1.25rem;}
-.about-body strong{color:var(--slate);font-weight:500;}
-.about-tags{display:flex;flex-wrap:wrap;gap:.6rem;margin-top:2rem;}
-.tag{font-family:var(--font-m);font-size:.6rem;letter-spacing:.15em;text-transform:uppercase;border:1px solid var(--border);color:var(--electric);padding:.35rem .85rem;}
-
-/* FEATURES */
-.features-section{position:relative;z-index:1;padding:8rem 5%;}
-.features-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1.5px;background:rgba(255,255,255,.04);}
-.feature-item{background:var(--bg);padding:2rem 1.5rem;display:flex;flex-direction:column;gap:.5rem;transition:background .3s;}
-.feature-item:hover{background:var(--bg2);}
-.feature-label{font-family:var(--font-m);font-size:.58rem;letter-spacing:.22em;text-transform:uppercase;color:rgba(0,212,255,.45);}
-.feature-val{font-size:.95rem;color:var(--slate);font-weight:400;}
-.feature-sub{font-family:var(--font-m);font-size:.66rem;color:var(--muted);}
+/* SERVICES/IP SECTION */
+.section { padding: 8rem 5%; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; }
+.card {
+    background: var(--bg2); border: 1px solid var(--border); padding: 3rem;
+    transition: 0.3s; position: relative;
+}
+.card:hover { border-color: var(--electric); background: var(--bg3); transform: translateY(-5px); }
+.card h3 { font-family: var(--font-d); font-size: 2rem; margin-bottom: 1rem; color: var(--electric); }
+.card p { color: var(--muted); font-size: 0.95rem; margin-bottom: 1.5rem; }
+.code-snippet {
+    background: #000; padding: 1rem; font-family: var(--font-m); font-size: 0.7rem;
+    color: #888; border-left: 3px solid var(--electric); margin-top: 1rem;
+}
 
 /* CTA */
-.cta-section{position:relative;z-index:1;padding:9rem 5%;text-align:center;overflow:hidden;}
-.cta-section::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(0,212,255,.06) 0%,transparent 65%);pointer-events:none;}
-.cta-bg-text{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--font-d);font-size:22vw;letter-spacing:.1em;color:rgba(0,212,255,.025);pointer-events:none;user-select:none;white-space:nowrap;}
-.cta-overline{font-family:var(--font-m);font-size:.62rem;letter-spacing:.38em;text-transform:uppercase;color:var(--electric);margin-bottom:1.5rem;}
-.cta-title{font-family:var(--font-d);font-size:clamp(3rem,5vw,5.5rem);letter-spacing:.03em;line-height:1;color:var(--slate);margin-bottom:1.5rem;}
-.cta-sub{font-size:1rem;color:var(--muted);max-width:50ch;margin:0 auto 3rem;}
-.cta-form{display:flex;gap:0;max-width:500px;margin:0 auto;border:1px solid rgba(0,212,255,.25);}
-.cta-input{flex:1;background:var(--bg2);border:none;outline:none;padding:1.1rem 1.25rem;color:var(--slate);font-family:var(--font-b);font-size:.9rem;}
-.cta-input::placeholder{color:var(--muted);}
-.cta-submit{font-family:var(--font-m);font-size:.68rem;letter-spacing:.15em;text-transform:uppercase;background:var(--electric);color:var(--bg);border:none;padding:1.1rem 1.75rem;cursor:none;font-weight:700;white-space:nowrap;transition:opacity .2s;}
-.cta-submit:hover{opacity:.85;}
+.cta { text-align: center; background: linear-gradient(transparent, rgba(0,242,255,0.05)); }
+.btn {
+    padding: 1.2rem 2.5rem; background: var(--electric); color: var(--bg);
+    font-family: var(--font-m); font-weight: bold; text-decoration: none;
+    text-transform: uppercase; letter-spacing: 2px; transition: 0.3s;
+    display: inline-block; clip-path: polygon(10% 0, 100% 0, 90% 100%, 0% 100%);
+}
+.btn:hover { opacity: 0.8; transform: scale(1.05); }
 
 /* FOOTER */
-footer{position:relative;z-index:1;background:var(--bg2);border-top:1px solid rgba(255,255,255,.06);padding:3rem 5%;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;}
-.footer-logo{font-family:var(--font-d);font-size:1.5rem;letter-spacing:.15em;color:var(--slate);}
-.footer-logo em{color:var(--electric);font-style:normal;}
-.footer-links{display:flex;gap:2rem;list-style:none;}
-.footer-links a{font-family:var(--font-m);font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);text-decoration:none;transition:color .2s;}
-.footer-links a:hover{color:var(--electric);}
-.footer-copy{font-family:var(--font-m);font-size:.6rem;letter-spacing:.1em;color:var(--muted);}
+footer { padding: 4rem 5%; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; color: var(--muted); font-family: var(--font-m); font-size: 0.7rem; }
 
-/* REVEAL */
-@keyframes fadeUp{from{opacity:0;transform:translateY(28px);}to{opacity:1;transform:translateY(0);}}
-@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
-.reveal{opacity:0;transform:translateY(32px);transition:opacity .7s ease,transform .7s ease;}
-.reveal.visible{opacity:1;transform:translateY(0);}
-
-/* TOAST */
-.toast{position:fixed;bottom:2rem;right:2rem;z-index:200;background:var(--bg2);border:1px solid var(--electric);color:var(--slate);padding:1rem 1.5rem;font-family:var(--font-m);font-size:.7rem;letter-spacing:.1em;transform:translateY(80px);opacity:0;transition:all .4s cubic-bezier(.22,1,.36,1);}
-.toast.show{transform:translateY(0);opacity:1;}
-
-/* RESPONSIVE */
-@media(max-width:900px){
-  .hero{grid-template-columns:1fr;padding-top:8rem;}
-  .hero-visual{height:300px;}
-  .stats-strip{grid-template-columns:repeat(2,1fr);}
-  .stat-item:nth-child(2){border-right:none;}
-  .services-grid,.about-section,.features-grid{grid-template-columns:1fr;}
-  .about-section{gap:3rem;}
-  nav{padding:1rem 5%;}
-  .nav-links{display:none;}
+@media (max-width: 900px) {
+    .hero { grid-template-columns: 1fr; text-align: center; height: auto; padding-top: 10rem; }
+    .hero-desc { margin: 0 auto 2.5rem; }
+    .hero-visual { height: 400px; }
 }
 </style>
 </head>
 <body>
 
-<div id="cursor"></div>
-<div id="cursor-ring"></div>
-<canvas id="bg-canvas"></canvas>
-
-<!-- NAV -->
 <nav>
-  <a href="#" class="logo">RAYFIK<em>.</em></a>
-  <ul class="nav-links">
-    <li><a href="#services">Services</a></li>
-    <li><a href="#about">About</a></li>
-    <li><a href="#specs">Specs</a></li>
-    <li><a href="#contact">Contact</a></li>
-  </ul>
-  <button class="nav-cta" onclick="showToast()">Request Briefing</button>
+    <a href="#" class="logo">RAYFIK<span>.</span>GNC</a>
+    <ul class="nav-links">
+        <li><a href="#perception">Perception</a></li>
+        <li><a href="#guidance">Guidance</a></li>
+        <li><a href="#defense">Defense IP</a></li>
+        <li><a href="#terminal">Terminal</a></li>
+    </ul>
+    <a href="#contact" class="btn" style="padding: 0.6rem 1.5rem; font-size: 0.6rem;">Contact Command</a>
 </nav>
 
-<!-- HERO -->
-<section class="hero" id="home">
-  <div class="hero-content">
-    <div class="hero-eyebrow">Autonomous Precision Systems</div>
-    <h1 class="hero-headline">
-      THE FUTURE<br>
-      OF <span class="accent">AUTONOMOUS</span><br>
-      <span class="outline">PRECISION</span>
-    </h1>
-    <p class="hero-sub">Where human intuition meets machine efficiency — Rayfik Robotics builds systems that don't just automate, they adapt.</p>
-    <div class="hero-btns">
-      <button class="btn-primary" onclick="showToast()">Request Technical Briefing</button>
-      <button class="btn-ghost" onclick="document.getElementById('services').scrollIntoView({behavior:'smooth'})">
-        <span>View Capabilities</span>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-      </button>
+<section class="hero">
+    <div class="hero-content">
+        <span class="hero-tag">// TERMINAL GUIDANCE SYSTEMS</span>
+        <h1 class="hero-title">CHEAP PIXELS.<br><em>PRECISE</em> IMPACT.</h1>
+        <p class="hero-desc">We build the perception stack for the next generation of autonomous interceptors. Converting monocular RGB streams into millimetric-precision guidance logic.</p>
+        <div style="display: flex; gap: 1rem;">
+            <a href="#terminal" class="btn">View Logic Stack</a>
+            <a href="#" class="nav-links" style="align-self:center; color: var(--electric); font-family: var(--font-m); font-size: 0.8rem; text-decoration: none;">[ DEPLOY SIMULATION ]</a>
+        </div>
     </div>
-  </div>
-  <div class="hero-visual">
-    <svg class="arm-svg" viewBox="0 0 480 540" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <radialGradient id="gG" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stop-color="#00d4ff" stop-opacity=".2"/>
-          <stop offset="100%" stop-color="#00d4ff" stop-opacity="0"/>
-        </radialGradient>
-        <filter id="b2"><feGaussianBlur stdDeviation="2.5"/></filter>
-        <filter id="b8"><feGaussianBlur stdDeviation="8"/></filter>
-      </defs>
-      <!-- grid -->
-      <g opacity=".06" stroke="#00d4ff" stroke-width=".5">
-        <line x1="0" y1="80" x2="480" y2="80"/><line x1="0" y1="160" x2="480" y2="160"/>
-        <line x1="0" y1="240" x2="480" y2="240"/><line x1="0" y1="320" x2="480" y2="320"/>
-        <line x1="0" y1="400" x2="480" y2="400"/><line x1="0" y1="480" x2="480" y2="480"/>
-        <line x1="80" y1="0" x2="80" y2="540"/><line x1="160" y1="0" x2="160" y2="540"/>
-        <line x1="240" y1="0" x2="240" y2="540"/><line x1="320" y1="0" x2="320" y2="540"/>
-        <line x1="400" y1="0" x2="400" y2="540"/>
-      </g>
-      <ellipse cx="240" cy="340" rx="130" ry="170" fill="url(#gG)"/>
-      <g class="arm-group">
-        <!-- platform -->
-        <rect x="155" y="490" width="170" height="18" rx="2" fill="#0e1219" stroke="#00d4ff" stroke-width=".8" stroke-opacity=".4"/>
-        <rect x="175" y="482" width="130" height="11" rx="1" fill="#141b24" stroke="#00d4ff" stroke-width=".5" stroke-opacity=".28"/>
-        <!-- base box -->
-        <rect x="193" y="415" width="94" height="74" rx="4" fill="#0e1219" stroke="#00d4ff" stroke-width=".9" stroke-opacity=".5"/>
-        <rect x="208" y="428" width="64" height="50" rx="2" fill="#141b24"/>
-        <line x1="208" y1="444" x2="272" y2="444" stroke="#00d4ff" stroke-width=".4" stroke-opacity=".22"/>
-        <line x1="208" y1="458" x2="272" y2="458" stroke="#00d4ff" stroke-width=".4" stroke-opacity=".22"/>
-        <line x1="208" y1="471" x2="272" y2="471" stroke="#00d4ff" stroke-width=".4" stroke-opacity=".22"/>
-        <circle cx="258" cy="434" r="4" fill="#00d4ff" opacity=".9" class="telem-dot"/>
-        <circle cx="258" cy="434" r="8" fill="#00d4ff" opacity=".1" filter="url(#b2)"/>
-        <!-- joint 1 -->
-        <circle cx="240" cy="415" r="17" fill="#0e1219" stroke="#00d4ff" stroke-width="1.2" stroke-opacity=".7"/>
-        <circle cx="240" cy="415" r="9" fill="#080b0f" stroke="#00d4ff" stroke-width="1" stroke-opacity=".9"/>
-        <circle cx="240" cy="415" r="3.5" fill="#00d4ff" opacity=".95"/>
-        <circle cx="240" cy="415" r="10" fill="#00d4ff" opacity=".1" filter="url(#b2)"/>
-        <!-- lower arm -->
-        <rect x="225" y="290" width="30" height="128" rx="6" fill="#0e1219" stroke="#00d4ff" stroke-width=".8" stroke-opacity=".5"/>
-        <line x1="231" y1="302" x2="249" y2="302" stroke="#00d4ff" stroke-width=".3" stroke-opacity=".2"/>
-        <line x1="231" y1="316" x2="249" y2="316" stroke="#00d4ff" stroke-width=".3" stroke-opacity=".2"/>
-        <line x1="231" y1="330" x2="249" y2="330" stroke="#00d4ff" stroke-width=".3" stroke-opacity=".2"/>
-        <line x1="231" y1="344" x2="249" y2="344" stroke="#00d4ff" stroke-width=".3" stroke-opacity=".2"/>
-        <line x1="231" y1="358" x2="249" y2="358" stroke="#00d4ff" stroke-width=".3" stroke-opacity=".2"/>
-        <line x1="231" y1="372" x2="249" y2="372" stroke="#00d4ff" stroke-width=".3" stroke-opacity=".2"/>
-        <line x1="231" y1="386" x2="249" y2="386" stroke="#00d4ff" stroke-width=".3" stroke-opacity=".2"/>
-        <rect x="225" y="292" width="30" height="4" rx="1" fill="#00d4ff" opacity=".45" class="scan"/>
-        <!-- elbow joint -->
-        <circle cx="240" cy="290" r="21" fill="#141b24" stroke="#00d4ff" stroke-width="1.3" stroke-opacity=".7"/>
-        <circle cx="240" cy="290" r="12" fill="#080b0f" stroke="#00d4ff" stroke-width="1.1" stroke-opacity=".9"/>
-        <circle cx="240" cy="290" r="4.5" fill="#00d4ff" opacity="1"/>
-        <circle cx="240" cy="290" r="14" fill="#00d4ff" opacity=".1" filter="url(#b8)"/>
-        <path d="M220 280 A21 21 0 0 1 260 280" fill="none" stroke="#00d4ff" stroke-width=".9" stroke-opacity=".35"/>
-        <!-- upper arm -->
-        <g class="upper-arm">
-          <rect x="225" y="165" width="30" height="128" rx="6" fill="#0e1219" stroke="#00d4ff" stroke-width=".8" stroke-opacity=".5"/>
-          <line x1="231" y1="178" x2="249" y2="178" stroke="#00d4ff" stroke-width=".3" stroke-opacity=".2"/>
-          <line x1="231" y1="192" x2="249" y2="192" stroke="#00d4ff" stroke-width=".3" stroke-opacity=".2"/>
-          <line x1="231" y1="206" x2="249" y2="206" stroke="#00d4ff" stroke-width=".3" stroke-opacity=".2"/>
-          <line x1="231" y1="220" x2="249" y2="220" stroke="#00d4ff" stroke-width=".3" stroke-opacity=".2"/>
-          <line x1="231" y1="234" x2="249" y2="234" stroke="#00d4ff" stroke-width=".3" stroke-opacity=".2"/>
-          <line x1="231" y1="248" x2="249" y2="248" stroke="#00d4ff" stroke-width=".3" stroke-opacity=".2"/>
-          <line x1="231" y1="262" x2="249" y2="262" stroke="#00d4ff" stroke-width=".3" stroke-opacity=".2"/>
-          <!-- shoulder -->
-          <circle cx="240" cy="165" r="21" fill="#141b24" stroke="#00d4ff" stroke-width="1.3" stroke-opacity=".7"/>
-          <circle cx="240" cy="165" r="12" fill="#080b0f" stroke="#00d4ff" stroke-width="1.1" stroke-opacity=".9"/>
-          <circle cx="240" cy="165" r="4.5" fill="#00d4ff" opacity="1"/>
-          <circle cx="240" cy="165" r="14" fill="#00d4ff" opacity=".08" filter="url(#b8)"/>
-          <!-- forearm -->
-          <g class="forearm">
-            <rect x="231" y="65" width="18" height="103" rx="4" fill="#141b24" stroke="#00d4ff" stroke-width=".7" stroke-opacity=".5"/>
-            <line x1="234" y1="78" x2="246" y2="78" stroke="#00d4ff" stroke-width=".3" stroke-opacity=".22"/>
-            <line x1="234" y1="92" x2="246" y2="92" stroke="#00d4ff" stroke-width=".3" stroke-opacity=".22"/>
-            <line x1="234" y1="106" x2="246" y2="106" stroke="#00d4ff" stroke-width=".3" stroke-opacity=".22"/>
-            <line x1="234" y1="120" x2="246" y2="120" stroke="#00d4ff" stroke-width=".3" stroke-opacity=".22"/>
-            <line x1="234" y1="134" x2="246" y2="134" stroke="#00d4ff" stroke-width=".3" stroke-opacity=".22"/>
-            <line x1="234" y1="148" x2="246" y2="148" stroke="#00d4ff" stroke-width=".3" stroke-opacity=".22"/>
-            <!-- wrist -->
-            <circle cx="240" cy="65" r="14" fill="#0e1219" stroke="#00d4ff" stroke-width="1.2" stroke-opacity=".8"/>
-            <circle cx="240" cy="65" r="7.5" fill="#080b0f" stroke="#00d4ff" stroke-width="1"/>
-            <circle cx="240" cy="65" r="3" fill="#00d4ff" opacity="1"/>
-            <!-- gripper body -->
-            <rect x="233" y="26" width="14" height="42" rx="2" fill="#141b24" stroke="#00d4ff" stroke-width=".8" stroke-opacity=".6"/>
-            <!-- fingers -->
-            <rect x="217" y="16" width="9" height="30" rx="2" fill="#0e1219" stroke="#00d4ff" stroke-width=".8" stroke-opacity=".7"/>
-            <rect x="254" y="16" width="9" height="30" rx="2" fill="#0e1219" stroke="#00d4ff" stroke-width=".8" stroke-opacity=".7"/>
-            <rect x="217" y="13" width="9" height="5" rx="1" fill="#00d4ff" class="gripper-tip"/>
-            <rect x="254" y="13" width="9" height="5" rx="1" fill="#00d4ff" class="gripper-tip"/>
-            <ellipse cx="240" cy="16" rx="28" ry="8" fill="#00d4ff" opacity=".07" filter="url(#b8)"/>
-          </g>
-        </g>
-      </g>
-      <!-- TELEMETRY TOP-RIGHT -->
-      <g transform="translate(308,28)">
-        <rect x="0" y="0" width="148" height="96" rx="2" fill="#0e1219" stroke="#00d4ff" stroke-width=".6" stroke-opacity=".4"/>
-        <text x="8" y="16" font-family="Space Mono" font-size="7" fill="#00d4ff" opacity=".45" letter-spacing="2">TELEMETRY</text>
-        <line x1="0" y1="21" x2="148" y2="21" stroke="#00d4ff" stroke-width=".4" stroke-opacity=".2"/>
-        <text x="8" y="36" font-family="Space Mono" font-size="8" fill="#7a8fa3">JOINT 01</text><text x="108" y="36" font-family="Space Mono" font-size="8" fill="#00d4ff">92.4°</text>
-        <text x="8" y="51" font-family="Space Mono" font-size="8" fill="#7a8fa3">JOINT 02</text><text x="108" y="51" font-family="Space Mono" font-size="8" fill="#00d4ff">47.1°</text>
-        <text x="8" y="66" font-family="Space Mono" font-size="8" fill="#7a8fa3">VELOCITY</text><text x="104" y="66" font-family="Space Mono" font-size="8" fill="#00d4ff">1.8m/s</text>
-        <text x="8" y="81" font-family="Space Mono" font-size="8" fill="#7a8fa3">STATUS</text>
-        <text x="106" y="81" font-family="Space Mono" font-size="8" fill="#00d4ff">● LIVE</text>
-        <circle cx="138" cy="79" r="3.5" fill="#00d4ff" class="telem-dot"/>
-      </g>
-      <!-- LOAD CELL BOTTOM-LEFT -->
-      <g transform="translate(10,375)">
-        <rect x="0" y="0" width="136" height="78" rx="2" fill="#0e1219" stroke="#00d4ff" stroke-width=".6" stroke-opacity=".4"/>
-        <text x="8" y="15" font-family="Space Mono" font-size="7" fill="#00d4ff" opacity=".45" letter-spacing="2">LOAD CELL</text>
-        <line x1="0" y1="20" x2="136" y2="20" stroke="#00d4ff" stroke-width=".4" stroke-opacity=".2"/>
-        <text x="8" y="36" font-family="Space Mono" font-size="8" fill="#7a8fa3">PAYLOAD</text><text x="88" y="36" font-family="Space Mono" font-size="8" fill="#00d4ff">48.3 kg</text>
-        <text x="8" y="52" font-family="Space Mono" font-size="8" fill="#7a8fa3">TORQUE</text><text x="84" y="52" font-family="Space Mono" font-size="8" fill="#00d4ff">620 Nm</text>
-        <text x="8" y="68" font-family="Space Mono" font-size="8" fill="#7a8fa3">REPEAT.</text><text x="80" y="68" font-family="Space Mono" font-size="8" fill="#00d4ff">±0.01mm</text>
-      </g>
-    </svg>
-  </div>
-  <div class="scroll-hint">
-    <div class="scroll-line"></div>
-    <span class="scroll-label">Scroll</span>
-  </div>
+    <div class="hero-visual">
+        <div class="viewport">
+            <div class="crosshair">
+                <div class="cross-v"></div>
+                <div class="cross-h"></div>
+            </div>
+            <div class="target-box"></div>
+            <div style="position: absolute; bottom: 10px; left: 10px; font-family: var(--font-m); font-size: 9px; color: var(--electric); opacity: 0.6;">
+                LAT: 40.7128° N<br>LNG: 74.0060° W<br>ALT: 142m MSL
+            </div>
+            <div style="position: absolute; top: 10px; right: 10px; font-family: var(--font-m); font-size: 9px; color: var(--warning);">
+                MODE: INTERCEPT_AUTO<br>V_REL: 84.2 m/s
+            </div>
+        </div>
+    </div>
 </section>
 
-<!-- STATS -->
-<div class="stats-strip reveal">
-  <div class="stat-item"><span class="stat-num">200+</span><span class="stat-label">Global Deployments</span></div>
-  <div class="stat-item"><span class="stat-num">0.01</span><span class="stat-label">mm Repeatability</span></div>
-  <div class="stat-item"><span class="stat-num">99.8%</span><span class="stat-label">Uptime Guaranteed</span></div>
-  <div class="stat-item"><span class="stat-num">6-DOF</span><span class="stat-label">Degrees of Freedom</span></div>
+<div class="data-strip">
+    <div class="data-item"><span class="val">30ms</span><span class="label">End-to-End Latency</span></div>
+    <div class="data-item"><span class="val">99.2%</span><span class="label">Target Retention</span></div>
+    <div class="data-item"><span class="val">EDGE</span><span class="label">Inference Model</span></div>
+    <div class="data-item"><span class="val">AES-256</span><span class="label">GNC Encryption</span></div>
 </div>
 
-<!-- SERVICES -->
-<section class="section" id="services">
-  <div class="section-tag">What We Build</div>
-  <h2 class="section-title reveal">PRECISION AT<br>EVERY SCALE</h2>
-  <div class="services-grid">
-    <div class="service-card reveal">
-      <div class="service-num">01 —</div>
-      <div class="service-icon">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-      </div>
-      <h3 class="service-name">INDUSTRIAL AUTOMATION</h3>
-      <p class="service-desc">End-to-end robotic cell integration for high-throughput manufacturing. Our systems deliver 40–60% cycle-time reduction with zero quality compromise. Scalable from single-cell pilots to multi-line greenfield deployments.</p>
-      <a href="#contact" class="service-link">Learn more →</a>
+<section class="section" id="perception">
+    <span class="hero-tag">01 // PERCEPTION & TRACKING</span>
+    <h2 class="hero-title" style="font-size: 4rem;">EYES THAT NEVER<br>BLINK.</h2>
+    <div class="grid">
+        <div class="card">
+            <h3>Monocular Depth IP</h3>
+            <p>Our proprietary "Depth-Anything-Small" implementation extracts 3D spatial data from a single 2D camera lens. No Radar. No LiDAR. Just math.</p>
+            <div class="code-snippet">output = model.predict(rgb_frame);<br>los_dist = estimate_z(output);</div>
+        </div>
+        <div class="card">
+            <h3>Jitter Mitigation</h3>
+            <p>Electronic Image Stabilization (EIS) that fuses IMU telemetry with pixel flow to de-blur targets moving at over 150km/h.</p>
+            <div class="code-snippet">fuse(imu_gyro, optical_flow);<br>return stabilized_crop;</div>
+        </div>
+        <div class="card">
+            <h3>Passive Locking</h3>
+            <p>Stealth by design. Our software doesn't emit RF or Lasers. It watches, calculates, and intercepts without the target ever receiving a warning.</p>
+        </div>
     </div>
-    <div class="service-card reveal" style="transition-delay:.1s">
-      <div class="service-num">02 —</div>
-      <div class="service-icon">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
-      </div>
-      <h3 class="service-name">AI INTEGRATION</h3>
-      <p class="service-desc">Adaptive machine-vision and reinforcement-learning pipelines that make your robots smarter with every cycle — no downtime, no cloud dependency, no retraining delays. On-device inference, sub-10ms latency.</p>
-      <a href="#contact" class="service-link">Learn more →</a>
-    </div>
-    <div class="service-card reveal" style="transition-delay:.2s">
-      <div class="service-num">03 —</div>
-      <div class="service-icon">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-      </div>
-      <h3 class="service-name">CUSTOM ROBOTICS</h3>
-      <p class="service-desc">Bespoke arm and mobility platforms engineered to your exacting specifications — from surgical-grade micro-actuators to 500 kg heavy-lift systems for naval and defence applications.</p>
-      <a href="#contact" class="service-link">Learn more →</a>
-    </div>
-  </div>
 </section>
 
-<!-- ABOUT -->
-<div class="about-section" id="about">
-  <div>
-    <div class="section-tag">System Specifications</div>
-    <h2 class="section-title reveal" style="margin-bottom:2rem">ENGINEERED<br>TO SPEC</h2>
-    <div class="spec-frame reveal">
-      <div class="spec-row"><span class="spec-key">Payload Capacity</span><span class="spec-val">Up to 500 kg</span></div>
-      <div class="spec-row"><span class="spec-key">Repeatability</span><span class="spec-val">±0.01 mm</span></div>
-      <div class="spec-row"><span class="spec-key">Degrees of Freedom</span><span class="spec-val">6-DOF / 7-DOF</span></div>
-      <div class="spec-row"><span class="spec-key">Communication</span><span class="spec-val">EtherCAT / ROS2</span></div>
-      <div class="spec-row"><span class="spec-key">Vision System</span><span class="spec-val">3D Stereo + ToF</span></div>
-      <div class="spec-row"><span class="spec-key">IP Rating</span><span class="spec-val">IP67 Standard</span></div>
-      <div class="spec-row"><span class="spec-key">Power Input</span><span class="spec-val">380–480V 3-Phase</span></div>
-      <div class="spec-row"><span class="spec-key">Operating Temp.</span><span class="spec-val">–20°C to +55°C</span></div>
+<section class="section" id="terminal" style="background: var(--bg2);">
+    <span class="hero-tag">02 // THE TERMINAL STACK</span>
+    <h2 class="hero-title" style="font-size: 4rem;">TERMINAL<br>PRECISION.</h2>
+    <div class="grid">
+        <div class="card">
+            <h3>AdaptIntercept™ Logic</h3>
+            <p>A C++ ROS2 node implementing <strong>Proportional Navigation (PN)</strong>. It calculates the optimal collision course by predicting target maneuvers before they happen.</p>
+            <div class="code-snippet">cmd_vel.angular.z = PN_Gain * LOS_Rate;</div>
+        </div>
+        <div class="card">
+            <h3>Digital Zoom-In</h3>
+            <p>As the drone closes the gap, our ESRGAN-based super-resolution "zooms in" on the target's center of mass, ensuring sub-centimeter impact accuracy.</p>
+        </div>
+        <div class="card">
+            <h3>The "Soft-Kill" Pivot</h3>
+            <p>A billion-dollar defensive asset. The system can be toggled to "Shadow Mode" — following a target at a fixed distance for escort or surveillance without impact.</p>
+        </div>
     </div>
-  </div>
-  <div class="about-body reveal">
-    <div class="section-tag">About Rayfik</div>
-    <h2 class="section-title" style="margin-bottom:1.5rem">BRIDGING HUMAN<br>INTUITION &amp;<br>MACHINE PRECISION</h2>
-    <p>At Rayfik Robotics, we believe the most powerful machines are those that <strong>learn from human context</strong> — not just execute pre-programmed routines. Our systems are engineered from first principles for environments where failure is not an option.</p>
-    <p>Founded by engineers from aerospace, defence, and industrial automation, we bring a rigorous approach to every platform — whether a micro-surgical actuator or a <strong>500 kg heavy-lift arm</strong> for a naval shipyard.</p>
-    <p>Our proprietary <strong>AdaptForce™ control stack</strong> enables real-time torque sensing, collision recovery, and autonomous re-path planning — all without cloud dependency.</p>
-    <div class="about-tags">
-      <span class="tag">ISO 9283</span>
-      <span class="tag">ROS2 Native</span>
-      <span class="tag">CE / UL Certified</span>
-      <span class="tag">CMMC Level 2</span>
-      <span class="tag">AdaptForce™</span>
-    </div>
-  </div>
-</div>
-
-<!-- FEATURES -->
-<section class="features-section" id="specs">
-  <div class="section-tag">Technical Parameters</div>
-  <h2 class="section-title reveal">HARDWARE<br>AT A GLANCE</h2>
-  <div class="features-grid">
-    <div class="feature-item reveal"><span class="feature-label">Joint Torque</span><span class="feature-val">620 Nm peak</span><span class="feature-sub">continuous: 380 Nm</span></div>
-    <div class="feature-item reveal" style="transition-delay:.05s"><span class="feature-label">Max Reach</span><span class="feature-val">2,400 mm</span><span class="feature-sub">radial from base</span></div>
-    <div class="feature-item reveal" style="transition-delay:.1s"><span class="feature-label">Cycle Time</span><span class="feature-val">0.4 s</span><span class="feature-sub">pick-and-place typical</span></div>
-    <div class="feature-item reveal" style="transition-delay:.15s"><span class="feature-label">Encoder</span><span class="feature-val">23-bit Absolute</span><span class="feature-sub">multi-turn capable</span></div>
-    <div class="feature-item reveal" style="transition-delay:.2s"><span class="feature-label">Control Rate</span><span class="feature-val">4 kHz</span><span class="feature-sub">real-time servo loop</span></div>
-    <div class="feature-item reveal" style="transition-delay:.25s"><span class="feature-label">Braking</span><span class="feature-val">Fail-Safe</span><span class="feature-sub">spring-engaged on power loss</span></div>
-    <div class="feature-item reveal" style="transition-delay:.3s"><span class="feature-label">Connectivity</span><span class="feature-val">EtherCAT + CAN</span><span class="feature-sub">redundant fieldbus</span></div>
-    <div class="feature-item reveal" style="transition-delay:.35s"><span class="feature-label">Weight (arm)</span><span class="feature-val">148 kg</span><span class="feature-sub">base unit, IP67 sealed</span></div>
-  </div>
 </section>
 
-<!-- CTA -->
-<section class="cta-section" id="contact">
-  <div class="cta-bg-text">RAYFIK</div>
-  <div class="cta-overline">Ready to Deploy</div>
-  <h2 class="cta-title reveal">REQUEST A<br>TECHNICAL BRIEFING</h2>
-  <p class="cta-sub reveal">Our engineering team will walk you through system selection, integration scope, and ROI modelling — no sales deck, just data.</p>
-  <div class="cta-form reveal">
-    <input class="cta-input" type="email" placeholder="your@organisation.com" id="emailInput"/>
-    <button class="cta-submit" onclick="handleSubmit()">Send Request</button>
-  </div>
+<section class="section cta" id="contact">
+    <h2 class="hero-title">READY FOR<br>INTEGRATION?</h2>
+    <p class="hero-desc" style="margin: 0 auto 3rem;">We don't sell drones. We sell the brains that make them unstoppable. Secure your technical briefing today.</p>
+    <a href="mailto:ops@rayfik.com" class="btn">Request SDK Access</a>
 </section>
 
-<!-- FOOTER -->
 <footer>
-  <div class="footer-logo">RAYFIK<em>.</em></div>
-  <ul class="footer-links">
-    <li><a href="#">Privacy</a></li>
-    <li><a href="#">Terms</a></li>
-    <li><a href="#">Documentation</a></li>
-    <li><a href="#">Careers</a></li>
-  </ul>
-  <span class="footer-copy">© 2025 Rayfik Robotics Pvt. Ltd.</span>
+    <div>RAYFIK ROBOTICS PERCEPTION DIV.</div>
+    <div>© 2026 // ALL RIGHTS RESERVED // ENCRYPTED CONNECTION</div>
 </footer>
 
-<div class="toast" id="toast">✓ Request received — we'll respond within 24 hours.</div>
-
 <script>
-/* CUSTOM CURSOR */
-const cur=document.getElementById('cursor'),ring=document.getElementById('cursor-ring');
-let mx=0,my=0,rx=0,ry=0;
-document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;});
-(function tick(){
-  cur.style.left=mx+'px';cur.style.top=my+'px';
-  rx+=(mx-rx)*.14;ry+=(my-ry)*.14;
-  ring.style.left=rx+'px';ring.style.top=ry+'px';
-  requestAnimationFrame(tick);
-})();
-document.querySelectorAll('button,a,.service-card,.feature-item').forEach(el=>{
-  el.addEventListener('mouseenter',()=>{cur.style.width='18px';cur.style.height='18px';ring.style.width='54px';ring.style.height='54px';ring.style.borderColor='rgba(0,212,255,.8)';});
-  el.addEventListener('mouseleave',()=>{cur.style.width='10px';cur.style.height='10px';ring.style.width='36px';ring.style.height='36px';ring.style.borderColor='rgba(0,212,255,.5)';});
-});
-
-/* PARTICLE CANVAS */
-const canvas=document.getElementById('bg-canvas');
-const ctx=canvas.getContext('2d');
-let W,H,pts=[];
-function resize(){W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight;}
-resize();window.addEventListener('resize',resize);
-class P{
-  constructor(){this.x=Math.random()*W;this.y=Math.random()*H;this.r=Math.random()*1.3+.3;this.vx=(Math.random()-.5)*.28;this.vy=(Math.random()-.5)*.28;this.a=Math.random()*.45+.1;}
-  update(){this.x+=this.vx;this.y+=this.vy;if(this.x<0||this.x>W)this.vx*=-1;if(this.y<0||this.y>H)this.vy*=-1;}
-  draw(){ctx.beginPath();ctx.arc(this.x,this.y,this.r,0,Math.PI*2);ctx.fillStyle=`rgba(0,212,255,${this.a})`;ctx.fill();}
-}
-for(let i=0;i<110;i++)pts.push(new P());
-(function loop(){
-  ctx.clearRect(0,0,W,H);
-  pts.forEach(p=>{p.update();p.draw();});
-  for(let i=0;i<pts.length;i++)for(let j=i+1;j<pts.length;j++){
-    const dx=pts[i].x-pts[j].x,dy=pts[i].y-pts[j].y,d=Math.sqrt(dx*dx+dy*dy);
-    if(d<125){ctx.strokeStyle=`rgba(0,212,255,${.11*(1-d/125)})`;ctx.lineWidth=.5;ctx.beginPath();ctx.moveTo(pts[i].x,pts[i].y);ctx.lineTo(pts[j].x,pts[j].y);ctx.stroke();}
-  }
-  requestAnimationFrame(loop);
-})();
-
-/* SCROLL REVEAL */
-const obs=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible');}),{threshold:.14});
-document.querySelectorAll('.reveal').forEach(el=>obs.observe(el));
-
-/* STAT COUNTER */
-const sObs=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting){animStat(e.target);sObs.unobserve(e.target);}}),{threshold:.5});
-document.querySelectorAll('.stat-num').forEach(el=>sObs.observe(el));
-function animStat(el){
-  const final=el.textContent,num=parseFloat(final.replace(/[^0-9.]/g,'')),suf=final.replace(/[0-9.]/g,'');
-  if(isNaN(num))return;
-  const dur=1400,t0=performance.now();
-  (function step(now){
-    const p=Math.min((now-t0)/dur,1),e2=1-Math.pow(1-p,3),v=(num*e2);
-    el.textContent=(num<10?v.toFixed(2):Math.round(v))+suf;
-    if(p<1)requestAnimationFrame(step);else el.textContent=final;
-  })(t0);
-}
-
-/* NAV ACTIVE */
-const sections=document.querySelectorAll('section[id],div[id]'),navLinks=document.querySelectorAll('.nav-links a');
-window.addEventListener('scroll',()=>{
-  let cur2='';
-  sections.forEach(s=>{if(window.scrollY>=s.offsetTop-130)cur2=s.id;});
-  navLinks.forEach(a=>{a.style.color=a.getAttribute('href')==='#'+cur2?'var(--electric)':'';});
-});
-
-/* TOAST */
-function showToast(){const t=document.getElementById('toast');t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3500);}
-function handleSubmit(){const v=document.getElementById('emailInput').value.trim();if(v&&v.includes('@')){showToast();document.getElementById('emailInput').value='';}else alert('Please enter a valid email address.');}
+// Logic to simulate data noise in the UI
+setInterval(() => {
+    const vals = document.querySelectorAll('.val');
+    vals.forEach(v => {
+        if(v.innerText.includes('%')) {
+            let n = (98 + Math.random()).toFixed(1);
+            v.innerText = n + '%';
+        }
+    });
+}, 2000);
 </script>
+
 </body>
 </html>
