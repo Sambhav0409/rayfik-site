@@ -3,234 +3,806 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Rayfik Robotics — Perception-Driven Terminal Guidance</title>
+<title>VEGA — Rayfik Robotics</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&family=Fraunces:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg:#05070a; --bg2:#0a0e14; --bg3:#101620;
-  --electric:#00f2ff; --warning:#ff3e3e; --slate:#e2e8f0; --muted:#64748b;
-  --border:rgba(0, 242, 255, 0.15);
-  --font-d:'Bebas Neue',sans-serif;
-  --font-m:'Space Mono',monospace;
-  --font-s:'Inter',sans-serif;
+  --ink:    #08090c;
+  --ink2:   #0e0f14;
+  --ink3:   #14151c;
+  --ink4:   #1e1f28;
+  --v:      #6C63FF;
+  --v2:     #8B85FF;
+  --v3:     rgba(108,99,255,0.14);
+  --v4:     rgba(108,99,255,0.05);
+  --gold:   #E8C97A;
+  --gold-l: rgba(232,201,122,0.1);
+  --jade:   #1ac47d;
+  --jade-l: rgba(26,196,125,0.1);
+  --red:    #FF4455;
+  --steel:  #bfc3d1;
+  --muted:  #52546a;
+  --dim:    #2a2b36;
+  --border: rgba(108,99,255,0.15);
+  --bsoft:  rgba(255,255,255,0.04);
+  --Hf: 'Syne', sans-serif;
+  --Mf: 'JetBrains Mono', monospace;
+  --Sf: 'Fraunces', serif;
 }
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-body { 
-    background: var(--bg); color: var(--slate); font-family: var(--font-s); 
-    overflow-x: hidden; line-height: 1.6;
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--ink);color:var(--steel);font-family:var(--Hf);overflow-x:hidden;line-height:1.6}
+ 
+/* STAR FIELD */
+#stars{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.star{position:absolute;border-radius:50%;background:#fff;animation:twinkle var(--d,3s) ease-in-out infinite var(--dl,0s)}
+@keyframes twinkle{0%,100%{opacity:var(--lo,.1)}50%{opacity:var(--hi,.7)}}
+ 
+/* NOISE */
+body::before{
+  content:"";position:fixed;inset:0;z-index:1;pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+  opacity:.5;
 }
-
-/* SCANLINE EFFECT */
-body::before {
-    content: ""; position: fixed; inset: 0; 
-    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
-    z-index: 999; background-size: 100% 4px, 3px 100%; pointer-events: none;
-}
-
+ 
 /* NAV */
-nav {
-    position: fixed; top: 0; width: 100%; z-index: 1000;
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 1.5rem 5%; background: rgba(5, 7, 10, 0.8); backdrop-filter: blur(10px);
-    border-bottom: 1px solid var(--border);
+nav{
+  position:fixed;top:0;width:100%;z-index:900;
+  display:flex;justify-content:space-between;align-items:center;
+  padding:1.25rem 5%;
+  background:rgba(8,9,12,0.8);backdrop-filter:blur(24px);
+  border-bottom:1px solid var(--border);
 }
-.logo { font-family: var(--font-d); font-size: 2rem; letter-spacing: 2px; color: var(--slate); text-decoration: none; }
-.logo span { color: var(--electric); }
-.nav-links { display: flex; gap: 2rem; list-style: none; }
-.nav-links a { font-family: var(--font-m); font-size: 0.7rem; color: var(--muted); text-decoration: none; text-transform: uppercase; transition: 0.3s; }
-.nav-links a:hover { color: var(--electric); }
-
-/* HERO SECTION */
-.hero {
-    height: 100vh; display: grid; grid-template-columns: 1.2fr 1fr;
-    align-items: center; padding: 0 5%; position: relative;
+.logo{
+  display:flex;align-items:center;gap:.8rem;
+  font-family:var(--Hf);font-weight:800;font-size:.85rem;
+  letter-spacing:.18em;color:var(--steel);text-decoration:none;text-transform:uppercase;
 }
-.hero-content { z-index: 2; }
-.hero-tag { font-family: var(--font-m); color: var(--electric); font-size: 0.8rem; margin-bottom: 1rem; display: block; }
-.hero-title { font-family: var(--font-d); font-size: clamp(4rem, 8vw, 8rem); line-height: 0.9; margin-bottom: 2rem; }
-.hero-title em { font-style: normal; -webkit-text-stroke: 1px var(--electric); color: transparent; }
-.hero-desc { max-width: 500px; color: var(--muted); font-size: 1.1rem; margin-bottom: 2.5rem; }
-
-/* TARGETING UI VISUAL */
-.hero-visual {
-    position: relative; height: 100%; display: flex; align-items: center; justify-content: center;
+.logo-mark{
+  position:relative;width:32px;height:32px;display:flex;align-items:center;justify-content:center;
 }
-.viewport {
-    width: 100%; max-width: 500px; height: 350px; border: 1px solid var(--electric);
-    position: relative; background: rgba(0, 242, 255, 0.03); overflow: hidden;
+.logo-mark svg{width:32px;height:32px}
+.logo-sub{font-size:.55rem;letter-spacing:.2em;color:var(--muted);margin-top:1px;display:block}
+.nav-links{display:flex;gap:2.5rem;list-style:none}
+.nav-links a{
+  font-family:var(--Mf);font-size:.62rem;color:var(--muted);
+  text-decoration:none;letter-spacing:.1em;text-transform:uppercase;transition:.2s;
 }
-.target-box {
-    position: absolute; width: 80px; height: 80px; border: 2px solid var(--warning);
-    top: 30%; left: 40%; transform: translate(-50%, -50%);
-    animation: track 6s infinite ease-in-out;
+.nav-links a:hover{color:var(--v2)}
+.nav-cta{
+  padding:.5rem 1.4rem;
+  background:linear-gradient(135deg,var(--v),#9B94FF);
+  font-family:var(--Mf);font-size:.62rem;color:#fff;
+  text-decoration:none;letter-spacing:.1em;text-transform:uppercase;
+  transition:.2s;border:none;cursor:pointer;
 }
-.target-box::before { content: "LOCK_ON: 98.4%"; position: absolute; top: -20px; left: 0; font-family: var(--font-m); font-size: 10px; color: var(--warning); white-space: nowrap; }
-.crosshair {
-    position: absolute; inset: 0; pointer-events: none;
+.nav-cta:hover{opacity:.85;transform:translateY(-1px)}
+ 
+/* HERO */
+.hero{
+  min-height:100vh;display:grid;grid-template-columns:1.1fr 1fr;
+  align-items:center;padding:9rem 5% 5rem;gap:5rem;
+  position:relative;z-index:2;
 }
-.cross-v { position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: rgba(0, 242, 255, 0.2); }
-.cross-h { position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: rgba(0, 242, 255, 0.2); }
-
-@keyframes track {
-    0%, 100% { top: 30%; left: 40%; }
-    25% { top: 60%; left: 70%; }
-    50% { top: 20%; left: 80%; }
-    75% { top: 70%; left: 20%; }
+.hero::before{
+  content:"";position:absolute;
+  top:-10%;left:-10%;width:60%;height:80%;
+  background:radial-gradient(ellipse at 30% 40%, rgba(108,99,255,0.08) 0%, transparent 60%);
+  pointer-events:none;
 }
-
-/* DATA STRIP */
-.data-strip {
-    background: var(--bg2); border-y: 1px solid var(--border);
-    padding: 2rem 5%; display: flex; justify-content: space-around;
-    font-family: var(--font-m);
+.tag{
+  font-family:var(--Mf);font-size:.65rem;color:var(--v2);
+  letter-spacing:.15em;text-transform:uppercase;
+  display:inline-flex;align-items:center;gap:.6rem;margin-bottom:1.5rem;
+  padding:.4rem .9rem;border:1px solid var(--border);background:var(--v4);
 }
-.data-item .val { color: var(--electric); display: block; font-size: 1.5rem; font-weight: bold; }
-.data-item .label { color: var(--muted); font-size: 0.7rem; text-transform: uppercase; }
-
-/* SERVICES/IP SECTION */
-.section { padding: 8rem 5%; }
-.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; }
-.card {
-    background: var(--bg2); border: 1px solid var(--border); padding: 3rem;
-    transition: 0.3s; position: relative;
+.tag::before{content:"★";font-size:.55rem;color:var(--gold)}
+.hero-title{
+  font-size:clamp(4rem,7vw,7.5rem);font-weight:800;line-height:.88;
+  letter-spacing:-.03em;margin-bottom:.5rem;
 }
-.card:hover { border-color: var(--electric); background: var(--bg3); transform: translateY(-5px); }
-.card h3 { font-family: var(--font-d); font-size: 2rem; margin-bottom: 1rem; color: var(--electric); }
-.card p { color: var(--muted); font-size: 0.95rem; margin-bottom: 1.5rem; }
-.code-snippet {
-    background: #000; padding: 1rem; font-family: var(--font-m); font-size: 0.7rem;
-    color: #888; border-left: 3px solid var(--electric); margin-top: 1rem;
+.hero-title .big{color:#fff;display:block}
+.hero-title .outline{
+  display:block;
+  -webkit-text-stroke:1.5px rgba(108,99,255,0.5);color:transparent;
 }
-
-/* CTA */
-.cta { text-align: center; background: linear-gradient(transparent, rgba(0,242,255,0.05)); }
-.btn {
-    padding: 1.2rem 2.5rem; background: var(--electric); color: var(--bg);
-    font-family: var(--font-m); font-weight: bold; text-decoration: none;
-    text-transform: uppercase; letter-spacing: 2px; transition: 0.3s;
-    display: inline-block; clip-path: polygon(10% 0, 100% 0, 90% 100%, 0% 100%);
+.hero-title .by{
+  display:block;font-size:clamp(1rem,2vw,1.6rem);font-weight:500;
+  color:var(--muted);letter-spacing:.02em;margin-top:.6rem;
 }
-.btn:hover { opacity: 0.8; transform: scale(1.05); }
-
+.hero-title .by span{color:var(--steel)}
+.hero-desc{
+  font-family:var(--Sf);font-weight:300;font-style:italic;
+  font-size:1.05rem;color:var(--muted);max-width:460px;
+  margin:1.8rem 0 2.5rem;line-height:1.75;
+}
+.hero-actions{display:flex;gap:1rem;flex-wrap:wrap}
+.btn-primary{
+  padding:.9rem 2.2rem;
+  background:linear-gradient(135deg,var(--v),#9B94FF);
+  color:#fff;font-family:var(--Mf);font-size:.68rem;font-weight:500;
+  text-decoration:none;letter-spacing:.1em;text-transform:uppercase;
+  transition:.2s;display:inline-block;
+}
+.btn-primary:hover{opacity:.85;transform:translateY(-2px)}
+.btn-ghost{
+  padding:.9rem 2.2rem;border:1px solid var(--dim);color:var(--muted);
+  font-family:var(--Mf);font-size:.68rem;
+  text-decoration:none;letter-spacing:.1em;text-transform:uppercase;
+  transition:.2s;display:inline-block;
+}
+.btn-ghost:hover{border-color:var(--v);color:var(--v2)}
+ 
+/* SCOPE / VIEWPORT */
+.hero-visual{z-index:2;position:relative}
+.scope{
+  position:relative;width:100%;aspect-ratio:4/3;
+  border:1px solid var(--border);background:var(--ink2);overflow:hidden;
+}
+.scope::before{
+  content:"";position:absolute;inset:0;
+  background:radial-gradient(ellipse at 50% 50%, rgba(108,99,255,0.06) 0%, transparent 70%);
+}
+.scope-grid{
+  position:absolute;inset:0;
+  background-image:
+    linear-gradient(rgba(108,99,255,.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(108,99,255,.05) 1px, transparent 1px);
+  background-size:36px 36px;
+}
+.scope-cv{position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(108,99,255,.18)}
+.scope-ch{position:absolute;top:50%;left:0;right:0;height:1px;background:rgba(108,99,255,.18)}
+.scope-ring{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:140px;height:140px;border-radius:50%;
+  border:1px solid rgba(108,99,255,.2);
+}
+.scope-ring2{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:60px;height:60px;border-radius:50%;
+  border:1px solid rgba(108,99,255,.35);
+}
+.lock-box{
+  position:absolute;width:70px;height:70px;
+  border:1.5px solid var(--red);
+  animation:trak 9s ease-in-out infinite;
+  top:38%;left:44%;
+}
+.lock-box .c{position:absolute;width:9px;height:9px}
+.lock-box .c.tl{top:-1.5px;left:-1.5px;border-top:2.5px solid var(--red);border-left:2.5px solid var(--red)}
+.lock-box .c.tr{top:-1.5px;right:-1.5px;border-top:2.5px solid var(--red);border-right:2.5px solid var(--red)}
+.lock-box .c.bl{bottom:-1.5px;left:-1.5px;border-bottom:2.5px solid var(--red);border-left:2.5px solid var(--red)}
+.lock-box .c.br{bottom:-1.5px;right:-1.5px;border-bottom:2.5px solid var(--red);border-right:2.5px solid var(--red)}
+.lock-lbl{position:absolute;top:-18px;left:0;font-family:var(--Mf);font-size:8px;color:var(--red);white-space:nowrap}
+@keyframes trak{
+  0%,100%{top:38%;left:44%}
+  20%{top:56%;left:62%}
+  40%{top:20%;left:72%}
+  60%{top:62%;left:25%}
+  80%{top:26%;left:52%}
+}
+.scan-line{
+  position:absolute;left:0;right:0;height:2px;
+  background:linear-gradient(transparent,rgba(108,99,255,.2),transparent);
+  animation:scan 3.5s linear infinite;top:0;
+}
+@keyframes scan{0%{top:-2px}100%{top:100%}}
+.hud-l{position:absolute;bottom:12px;left:12px;font-family:var(--Mf);font-size:8.5px;color:rgba(108,99,255,.7);line-height:1.8}
+.hud-r{position:absolute;top:12px;right:12px;font-family:var(--Mf);font-size:8.5px;color:rgba(255,68,85,.8);text-align:right;line-height:1.8}
+ 
+/* VEGA STAR BADGE */
+.vega-badge{
+  position:absolute;bottom:-20px;right:-20px;
+  width:80px;height:80px;
+  background:linear-gradient(135deg,var(--v),#9B94FF);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  clip-path:polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);
+}
+.vega-badge span{font-size:.55rem;font-weight:800;letter-spacing:.1em;color:#fff;line-height:1.2;text-align:center}
+ 
+/* METRICS */
+.metrics{
+  display:grid;grid-template-columns:repeat(4,1fr);
+  border-top:1px solid var(--border);border-bottom:1px solid var(--border);
+  background:var(--ink2);position:relative;z-index:2;
+}
+.metric{padding:2rem;border-right:1px solid var(--bsoft);text-align:center}
+.metric:last-child{border-right:none}
+.metric-val{
+  font-size:1.9rem;font-weight:800;
+  background:linear-gradient(135deg,var(--v2),var(--gold));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  display:block;letter-spacing:-.02em;font-variant-numeric:tabular-nums;
+}
+.metric-label{font-family:var(--Mf);font-size:.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-top:.4rem}
+ 
+/* SECTIONS */
+section{padding:7rem 5%;position:relative;z-index:2}
+.stag{
+  font-family:var(--Mf);font-size:.62rem;color:var(--v2);letter-spacing:.15em;
+  text-transform:uppercase;margin-bottom:1rem;display:flex;align-items:center;gap:.6rem;
+}
+.stag::before{content:"";display:block;width:20px;height:1px;background:linear-gradient(90deg,var(--v),var(--v2))}
+.stitle{font-size:clamp(2rem,4vw,3.5rem);font-weight:800;color:#fff;line-height:.95;letter-spacing:-.025em;margin-bottom:1rem}
+.sdesc{font-family:var(--Sf);font-style:italic;font-weight:300;color:var(--muted);font-size:1rem;max-width:500px;line-height:1.75;margin-bottom:3rem}
+ 
+/* CAPABILITY GRID */
+.cap-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--bsoft)}
+.cap-card{
+  background:var(--ink2);padding:2.5rem;transition:.3s;
+  position:relative;overflow:hidden;
+}
+.cap-card::before{
+  content:"";position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,var(--v),var(--v2));
+  opacity:0;transition:.3s;
+}
+.cap-card:hover{background:var(--ink3)}
+.cap-card:hover::before{opacity:1}
+.cap-num{
+  font-family:var(--Mf);font-size:.6rem;color:var(--v);
+  letter-spacing:.15em;margin-bottom:1rem;
+}
+.cap-title{font-size:1.05rem;font-weight:700;color:#fff;margin-bottom:.7rem}
+.cap-desc{font-family:var(--Sf);font-weight:300;font-size:.9rem;color:var(--muted);line-height:1.7;margin-bottom:1.2rem}
+.cap-spec{
+  font-family:var(--Mf);font-size:.6rem;color:var(--v2);
+  padding:.45rem .8rem;background:var(--v4);border-left:2px solid var(--v);
+}
+ 
+/* ARCH */
+.arch-wrap{background:var(--ink2);padding:7rem 5%}
+.arch-diagram{
+  margin-top:3rem;border:1px solid var(--border);padding:2.5rem;
+  position:relative;overflow:hidden;
+}
+.arch-diagram::after{
+  content:"VEGA · AUTONOMY STACK · v1.0";
+  position:absolute;top:1rem;right:1.5rem;
+  font-family:var(--Mf);font-size:.55rem;color:var(--dim);letter-spacing:.1em;
+}
+.arch-layers{display:flex;flex-direction:column;gap:1px;background:var(--bsoft)}
+.arch-layer{background:var(--ink2);border-left:2px solid var(--dim);transition:.3s}
+.arch-layer:hover{border-left-color:var(--v)}
+.arch-inner{display:grid;grid-template-columns:160px 1fr;min-height:60px}
+.arch-lbl{
+  padding:.9rem 1.5rem;border-right:1px solid var(--bsoft);
+  font-family:var(--Mf);font-size:.6rem;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center;
+}
+.arch-mods{display:flex;align-items:center;flex-wrap:wrap;gap:.4rem;padding:.9rem 1.5rem}
+.mod{
+  font-family:var(--Mf);font-size:.58rem;padding:.28rem .65rem;
+  background:var(--ink4);color:var(--steel);border:1px solid var(--bsoft);transition:.2s;
+}
+.mod.hot{background:var(--v3);color:var(--v2);border-color:var(--border)}
+.mod:hover{border-color:var(--v);color:var(--v2)}
+.arch-arr{
+  display:flex;align-items:center;justify-content:center;
+  height:22px;font-family:var(--Mf);font-size:.55rem;color:var(--dim);letter-spacing:.15em;
+}
+ 
+/* MISSION FORK */
+.fork-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--bsoft);margin-top:3rem}
+.fork-card{background:var(--ink2);padding:3rem;position:relative;overflow:hidden}
+.fork-card.on{background:var(--ink3)}
+.fork-card.on::before{
+  content:"";position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,var(--v),var(--v2));
+}
+.fork-type{font-family:var(--Mf);font-size:.62rem;color:var(--v2);text-transform:uppercase;letter-spacing:.1em;margin-bottom:1rem}
+.fork-title{font-size:1.7rem;font-weight:800;color:#fff;margin-bottom:1rem}
+.fork-desc{font-family:var(--Sf);font-weight:300;font-style:italic;color:var(--muted);font-size:.95rem;line-height:1.75;margin-bottom:1.5rem}
+.fork-list{list-style:none;display:flex;flex-direction:column;gap:.6rem}
+.fork-list li{font-family:var(--Mf);font-size:.62rem;color:var(--muted);padding-left:1.2rem;position:relative;line-height:1.5}
+.fork-list li::before{content:"→";position:absolute;left:0;color:var(--v)}
+.m-badge{
+  display:inline-flex;align-items:center;gap:.4rem;margin-top:1.5rem;
+  font-family:var(--Mf);font-size:.58rem;color:var(--jade);
+  background:var(--jade-l);padding:.3rem .8rem;border:1px solid rgba(26,196,125,.2);
+}
+.m-badge::before{content:"◆";font-size:.4rem}
+ 
+/* SOVEREIGNTY */
+.sov-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--bsoft);margin-top:3rem}
+.sov-item{background:var(--ink2);padding:2rem;text-align:center}
+.sov-val{
+  font-size:2.4rem;font-weight:800;
+  background:linear-gradient(135deg,var(--v2),var(--gold));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  display:block;letter-spacing:-.03em;
+}
+.sov-label{font-family:var(--Mf);font-size:.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-top:.5rem}
+ 
+/* ROADMAP */
+.timeline{display:flex;flex-direction:column}
+.phase{
+  display:grid;grid-template-columns:180px 1fr;gap:3rem;
+  border-top:1px solid var(--bsoft);padding:2.5rem 0;align-items:start;
+  transition:.2s;
+}
+.phase:hover .pnum{
+  background:linear-gradient(135deg,var(--v),var(--v2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.pnum{
+  font-size:4.5rem;font-weight:800;color:var(--dim);line-height:1;
+  letter-spacing:-.05em;transition:.3s;
+}
+.pperiod{font-family:var(--Mf);font-size:.6rem;color:var(--muted);letter-spacing:.1em;margin-top:.4rem}
+.pname{font-size:1.25rem;font-weight:700;color:#fff;margin-bottom:.5rem}
+.pdesc{font-family:var(--Sf);font-weight:300;font-style:italic;color:var(--muted);font-size:.92rem;margin-bottom:1.2rem;line-height:1.7}
+.pills{display:flex;flex-wrap:wrap;gap:.4rem}
+.pill{
+  font-family:var(--Mf);font-size:.58rem;padding:.28rem .7rem;
+  border:1px solid var(--dim);color:var(--muted);transition:.2s;
+}
+.pill:hover{border-color:var(--v);color:var(--v2);background:var(--v4)}
+ 
 /* FOOTER */
-footer { padding: 4rem 5%; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; color: var(--muted); font-family: var(--font-m); font-size: 0.7rem; }
-
-@media (max-width: 900px) {
-    .hero { grid-template-columns: 1fr; text-align: center; height: auto; padding-top: 10rem; }
-    .hero-desc { margin: 0 auto 2.5rem; }
-    .hero-visual { height: 400px; }
+footer{
+  padding:3.5rem 5%;border-top:1px solid var(--border);
+  display:grid;grid-template-columns:1fr auto 1fr;align-items:center;
+  background:var(--ink2);gap:2rem;
 }
+.fl{font-family:var(--Mf);font-size:.58rem;color:var(--muted);line-height:1.8}
+.fc{text-align:center}
+.fc .fn{font-size:2rem;font-weight:800;color:#fff;letter-spacing:.1em}
+.fc .fs{font-family:var(--Mf);font-size:.55rem;color:var(--muted);letter-spacing:.2em;margin-top:.2rem}
+.fr{font-family:var(--Mf);font-size:.58rem;color:var(--muted);text-align:right;line-height:1.8}
+ 
+/* GLOW DIVIDER */
+.glow-div{
+  height:1px;background:linear-gradient(90deg,transparent,var(--v),transparent);
+  opacity:.3;
+}
+ 
+@media(max-width:900px){
+  .hero{grid-template-columns:1fr;padding-top:8rem;gap:3rem}
+  .metrics{grid-template-columns:repeat(2,1fr)}
+  .cap-grid{grid-template-columns:1fr}
+  .fork-grid{grid-template-columns:1fr}
+  .phase{grid-template-columns:1fr}
+  .sov-grid{grid-template-columns:repeat(2,1fr)}
+  footer{grid-template-columns:1fr;text-align:center}
+  .fr{text-align:center}
+  .nav-links{display:none}
+  .arch-inner{grid-template-columns:1fr}
+  .arch-lbl{border-right:none;border-bottom:1px solid var(--bsoft)}
+}
+ 
+/* FADE IN */
+@keyframes fadeUp{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
+.hero-content>*{animation:fadeUp .65s ease both}
+.hero-content .tag{animation-delay:.1s}
+.hero-content .hero-title{animation-delay:.2s}
+.hero-content .hero-desc{animation-delay:.3s}
+.hero-content .hero-actions{animation-delay:.4s}
+.hero-visual{animation:fadeUp .8s .35s ease both}
 </style>
 </head>
 <body>
-
+ 
+<div id="stars"></div>
+ 
+<!-- NAV -->
 <nav>
-    <a href="#" class="logo">RAYFIK ROBOTICS</a>
-    <ul class="nav-links">
-        <li><a href="#perception">Perception</a></li>
-        <li><a href="#guidance">Guidance</a></li>
-        <li><a href="#defense">Defense IP</a></li>
-        <li><a href="#terminal">Terminal</a></li>
-    </ul>
-    <a href="#contact" class="btn" style="padding: 0.6rem 1.5rem; font-size: 0.6rem;">Contact Command</a>
+  <a href="#" class="logo">
+    <div class="logo-mark">
+      <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="16,2 19.5,12.5 30.5,12.5 21.5,19 25,29.5 16,23 7,29.5 10.5,19 1.5,12.5 12.5,12.5" fill="none" stroke="url(#vg)" stroke-width="1.5"/>
+        <circle cx="16" cy="16" r="3.5" fill="url(#vg)"/>
+        <defs>
+          <linearGradient id="vg" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#6C63FF"/>
+            <stop offset="100%" stop-color="#E8C97A"/>
+          </linearGradient>
+        </defs>
+      </svg>
+    </div>
+    <div>
+      VEGA
+      <span class="logo-sub">by Rayfik Robotics</span>
+    </div>
+  </a>
+  <ul class="nav-links">
+    <li><a href="#perception">Perception</a></li>
+    <li><a href="#stack">Stack</a></li>
+    <li><a href="#missions">Missions</a></li>
+    <li><a href="#roadmap">Roadmap</a></li>
+  </ul>
+  <a href="#contact" class="nav-cta">Request Briefing</a>
 </nav>
-
+ 
+<!-- HERO -->
 <section class="hero">
-    <div class="hero-content">
-        <span class="hero-tag">// TERMINAL GUIDANCE SYSTEMS</span>
-        <h1 class="hero-title">CHEAP PIXELS.<br><em>PRECISE</em> IMPACT.</h1>
-        <p class="hero-desc">We build the perception stack for the next generation of autonomous interceptors. Converting monocular RGB streams into millimetric-precision guidance logic.</p>
-        <div style="display: flex; gap: 1rem;">
-            <a href="#terminal" class="btn">View Logic Stack</a>
-            <a href="#" class="nav-links" style="align-self:center; color: var(--electric); font-family: var(--font-m); font-size: 0.8rem; text-decoration: none;">[ DEPLOY SIMULATION ]</a>
-        </div>
+  <div class="hero-content">
+    <span class="tag">GPS-Denied · EW-Contested · Sovereign</span>
+    <h1 class="hero-title">
+      <span class="big">VEGA</span>
+      <span class="outline">AUTONOMY</span>
+      <span class="outline">STACK</span>
+      <span class="by">by <span>Rayfik Robotics</span></span>
+    </h1>
+    <p class="hero-desc">
+      One lens. Complete independence. Millimetric terminal guidance, visual localization, and obstacle-aware navigation — driven entirely by monocular RGB in GPS-denied, EW-contested airspace.
+    </p>
+    <div class="hero-actions">
+      <a href="#stack" class="btn-primary">Explore the Stack</a>
+      <a href="#missions" class="btn-ghost">Mission Profiles</a>
     </div>
-    <div class="hero-visual">
-        <div class="viewport">
-            <div class="crosshair">
-                <div class="cross-v"></div>
-                <div class="cross-h"></div>
-            </div>
-            <div class="target-box"></div>
-            <div style="position: absolute; bottom: 10px; left: 10px; font-family: var(--font-m); font-size: 9px; color: var(--electric); opacity: 0.6;">
-                LAT: 40.7128° N<br>LNG: 74.0060° W<br>ALT: 142m MSL
-            </div>
-            <div style="position: absolute; top: 10px; right: 10px; font-family: var(--font-m); font-size: 9px; color: var(--warning);">
-                MODE: INTERCEPT_AUTO<br>V_REL: 84.2 m/s
-            </div>
-        </div>
+  </div>
+ 
+  <div class="hero-visual">
+    <div class="scope">
+      <div class="scope-grid"></div>
+      <div class="scan-line"></div>
+      <div class="scope-cv"></div>
+      <div class="scope-ch"></div>
+      <div class="scope-ring"></div>
+      <div class="scope-ring2"></div>
+      <div class="lock-box">
+        <div class="c tl"></div><div class="c tr"></div>
+        <div class="c bl"></div><div class="c br"></div>
+        <span class="lock-lbl" id="lock-lbl">ACQUIRING...</span>
+      </div>
+      <div class="hud-l">
+        VEGA · PERCEPTION ACTIVE<br>
+        MODE: VISUAL_SLAM<br>
+        DEPTH: MONOCULAR/METRIC<br>
+        GPS: <span style="color:#FF4455">DENIED</span> · EW: <span style="color:#FF4455">CONTESTED</span>
+      </div>
+      <div class="hud-r">
+        CONF: <span id="conf">97.4</span>%<br>
+        LAT: 28.6139° N<br>
+        FRAME: <span id="frame">00441</span>
+      </div>
     </div>
+    <div class="vega-badge">
+      <span>VEGA<br>v1.0</span>
+    </div>
+  </div>
 </section>
-
-<div class="data-strip">
-    <div class="data-item"><span class="val">30ms</span><span class="label">End-to-End Latency</span></div>
-    <div class="data-item"><span class="val">99.2%</span><span class="label">Target Retention</span></div>
-    <div class="data-item"><span class="val">EDGE</span><span class="label">Inference Model</span></div>
-    <div class="data-item"><span class="val">AES-256</span><span class="label">GNC Encryption</span></div>
+ 
+<!-- METRICS -->
+<div class="metrics">
+  <div class="metric">
+    <span class="metric-val">&lt; 30ms</span>
+    <div class="metric-label">End-to-End Latency</div>
+  </div>
+  <div class="metric">
+    <span class="metric-val">&lt; 0.5m</span>
+    <div class="metric-label">Terminal CEP</div>
+  </div>
+  <div class="metric">
+    <span class="metric-val">&lt; 5m</span>
+    <div class="metric-label">GPS-Denied Localisation</div>
+  </div>
+  <div class="metric">
+    <span class="metric-val">0</span>
+    <div class="metric-label">ITAR / Foreign Dependencies</div>
+  </div>
 </div>
-
-<section class="section" id="perception">
-    <span class="hero-tag">01 // PERCEPTION & TRACKING</span>
-    <h2 class="hero-title" style="font-size: 4rem;">EYES THAT NEVER<br>BLINK.</h2>
-    <div class="grid">
-        <div class="card">
-            <h3>Monocular Depth</h3>
-            <p>Our proprietary "Depth-Anything-Small" implementation extracts 3D spatial data from a single 2D camera lens. No Radar. No LiDAR. Just math.</p>
-            <div class="code-snippet">output = model.predict(rgb_frame);<br>los_dist = estimate_z(output);</div>
-        </div>
-        <div class="card">
-            <h3>Jitter Mitigation</h3>
-            <p>Electronic Image Stabilization (EIS) that fuses IMU telemetry with pixel flow to de-blur targets moving at over 150km/h.</p>
-            <div class="code-snippet">fuse(imu_gyro, optical_flow);<br>return stabilized_crop;</div>
-        </div>
-        <div class="card">
-            <h3>Passive Locking</h3>
-            <p>Stealth by design. Our software doesn't emit RF or Lasers. It watches, calculates, and intercepts without the target ever receiving a warning.</p>
-        </div>
+ 
+<!-- PERCEPTION -->
+<section id="perception">
+  <div class="stag">01 // Perception Primitives</div>
+  <h2 class="stitle">THE EYES<br>OF VEGA</h2>
+  <p class="sdesc">Everything begins with a single uncooled RGB sensor. No LiDAR. No radar. No active emission. Pure passive intelligence, processed at the edge.</p>
+ 
+  <div class="cap-grid">
+    <div class="cap-card">
+      <div class="cap-num">01 — DEPTH</div>
+      <div class="cap-title">Metric-Scale Monocular Depth</div>
+      <div class="cap-desc">Self-supervised depth networks fine-tuned on sovereign Indian terrain data. IMU-anchored scale recovery eliminates the classic monocular ambiguity.</div>
+      <div class="cap-spec">RMSE &lt; 0.5m @ 50m AGL · 30 FPS on Jetson Orin</div>
     </div>
-</section>
-
-<section class="section" id="terminal" style="background: var(--bg2);">
-    <span class="hero-tag">02 // THE TERMINAL STACK</span>
-    <h2 class="hero-title" style="font-size: 4rem;">TERMINAL<br>PRECISION.</h2>
-    <div class="grid">
-        <div class="card">
-            <h3>AdaptIntercept™ Logic</h3>
-            <p>A node implementing <strong>Proportional Navigation (PN)</strong>. It calculates the optimal collision course by predicting target maneuvers before they happen.</p>
-            <div class="code-snippet">cmd_vel.angular.z = PN_Gain * LOS_Rate;</div>
-        </div>
-        <div class="card">
-            <h3>Digital Zoom-In</h3>
-            <p>As the drone closes the gap, our ESRGAN-based super-resolution "zooms in" on the target's center of mass, ensuring sub-centimeter impact accuracy.</p>
-        </div>
-
+    <div class="cap-card">
+      <div class="cap-num">02 — ODOMETRY</div>
+      <div class="cap-title">Visual Odometry</div>
+      <div class="cap-desc">SuperPoint feature tracking fused with dense optical flow. IMU preintegration via factor graphs. Works in featureless Thar desert and high-texture Himalayan terrain alike.</div>
+      <div class="cap-spec">Drift &lt; 1% over 1 km · Feature-sparse capable</div>
     </div>
+    <div class="cap-card">
+      <div class="cap-num">03 — SEMANTICS</div>
+      <div class="cap-title">Semantic Scene Understanding</div>
+      <div class="cap-desc">Lightweight SegFormer with MobileViT backbone. Classifies terrain type, threat objects, and landing zones in real-time — fully on-board, no datalink.</div>
+      <div class="cap-spec">15 FPS on-edge · 12 terrain classes · Adversarially robust</div>
+    </div>
+    <div class="cap-card">
+      <div class="cap-num">04 — STABILITY</div>
+      <div class="cap-title">Electronic Image Stabilisation</div>
+      <div class="cap-desc">IMU gyro fused with optical flow compensation. Targets moving at 150+ km/h remain sharp across high-vibration CTOL airframe configurations.</div>
+      <div class="cap-spec">Sub-pixel registration · 150+ km/h target stability</div>
+    </div>
+    <div class="cap-card">
+      <div class="cap-num">05 — PASSIVE</div>
+      <div class="cap-title">Zero RF Emission</div>
+      <div class="cap-desc">VEGA emits nothing. No laser rangefinder. No active radar. Passive electro-optical acquisition makes the platform electronically silent during the entire engagement.</div>
+      <div class="cap-spec">RF-silent · SIGINT-transparent · Low observable</div>
+    </div>
+    <div class="cap-card">
+      <div class="cap-num">06 — DATA</div>
+      <div class="cap-title">Sovereign Dataset Pipeline</div>
+      <div class="cap-desc">All training data collected over Indian terrain — Thar, Himalayan treeline, Deccan plateau, urban theatre. ITAR-free ground truth via domestic survey aircraft.</div>
+      <div class="cap-spec">10k+ annotated frames · Multi-terrain · ITAR-free</div>
+    </div>
+  </div>
 </section>
-
-<section class="section cta" id="contact">
-    <h2 class="hero-title">READY FOR<br>INTEGRATION?</h2>
-    <p class="hero-desc" style="margin: 0 auto 3rem;">We don't sell drones. We sell the brains that make them unstoppable. Secure your technical briefing today.</p>
-    <a href="mailto:rayfikrobotics@gmail.com" class="btn">Request SDK Access</a>
+ 
+<div class="glow-div"></div>
+ 
+<!-- ARCHITECTURE -->
+<section class="arch-wrap" id="stack">
+  <div class="stag">02 // Architecture</div>
+  <h2 class="stitle">HARDWARE-AGNOSTIC<br>BY DESIGN</h2>
+  <p class="sdesc">A clean HAL separates algorithms from silicon. The same perception graph runs on Jetson Orin, Snapdragon Flight Pro, or any future edge SoC — algorithm unchanged.</p>
+ 
+  <div class="arch-diagram">
+    <div class="arch-layers">
+      <div class="arch-layer">
+        <div class="arch-inner">
+          <div class="arch-lbl">Mission</div>
+          <div class="arch-mods">
+            <span class="mod hot">Intercept Behavior</span>
+            <span class="mod hot">ISR Loiter</span>
+            <span class="mod">Contingency Mgmt</span>
+            <span class="mod">Abort Envelopes</span>
+            <span class="mod">AES-256 GNC</span>
+          </div>
+        </div>
+      </div>
+      <div class="arch-arr">↓ guidance commands ↓</div>
+      <div class="arch-layer">
+        <div class="arch-inner">
+          <div class="arch-lbl">Guidance</div>
+          <div class="arch-mods">
+            <span class="mod hot">IBVS Terminal Homing</span>
+            <span class="mod hot">Proportional Navigation</span>
+            <span class="mod">MPPI Replanning</span>
+            <span class="mod">iLQR Optimisation</span>
+            <span class="mod">Kinodynamic Constraints</span>
+          </div>
+        </div>
+      </div>
+      <div class="arch-arr">↓ state estimates ↓</div>
+      <div class="arch-layer">
+        <div class="arch-inner">
+          <div class="arch-lbl">Localisation</div>
+          <div class="arch-mods">
+            <span class="mod hot">DROID-SLAM</span>
+            <span class="mod">Terrain-Relative Nav</span>
+            <span class="mod">iSAM2 Factor Graph</span>
+            <span class="mod">Loop Closure</span>
+            <span class="mod">EW Blackout Recovery</span>
+            <span class="mod">NetVLAD Re-localisation</span>
+          </div>
+        </div>
+      </div>
+      <div class="arch-arr">↓ features + depth ↓</div>
+      <div class="arch-layer">
+        <div class="arch-inner">
+          <div class="arch-lbl">Perception</div>
+          <div class="arch-mods">
+            <span class="mod hot">Monocular Depth</span>
+            <span class="mod hot">Visual Odometry</span>
+            <span class="mod">YOLOv9 Detection</span>
+            <span class="mod">ByteTrack</span>
+            <span class="mod">Semantic Segmentation</span>
+            <span class="mod">EIS Stabilisation</span>
+          </div>
+        </div>
+      </div>
+      <div class="arch-arr">↓ raw pixels + imu ↓</div>
+      <div class="arch-layer">
+        <div class="arch-inner">
+          <div class="arch-lbl">Sensor / HAL</div>
+          <div class="arch-mods">
+            <span class="mod">Monocular RGB (any)</span>
+            <span class="mod">IMU / MEMS</span>
+            <span class="mod">Barometer</span>
+            <span class="mod">Magnetometer</span>
+            <span class="mod hot">Hardware Abstraction Layer</span>
+            <span class="mod">ROS 2 / DDS</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </section>
-
+ 
+<!-- MISSIONS -->
+<section id="missions">
+  <div class="stag">03 // Mission Profiles</div>
+  <h2 class="stitle">ONE STACK.<br>TWO MISSIONS.</h2>
+  <p class="sdesc">Shared perception and localisation core. The mission layer is the only thing that changes. 80% identical codebase — two completely different terminal behaviours.</p>
+ 
+  <div class="fork-grid">
+    <div class="fork-card on">
+      <div class="fork-type">Profile Alpha</div>
+      <div class="fork-title">Precision Interceptor</div>
+      <div class="fork-desc">Autonomous terminal guidance for loitering munitions and kinetic interceptors. IBVS-driven control surfaces achieve sub-meter CEP without any active RF emission whatsoever.</div>
+      <ul class="fork-list">
+        <li>IBVS homing on tracked target centroid</li>
+        <li>YOLOv9 + Siamese network under partial occlusion</li>
+        <li>PnP geometry — sub-0.3° bearing error at 200m</li>
+        <li>Proportional Navigation with maneuver prediction</li>
+        <li>Counter-camouflage via spectral and texture analysis</li>
+        <li>Target lock acquired in under 1 second</li>
+      </ul>
+      <div class="m-badge">CEP &lt; 0.5m @ 300m slant range</div>
+    </div>
+    <div class="fork-card">
+      <div class="fork-type">Profile Bravo</div>
+      <div class="fork-title">ISR / Persistent Surveillance</div>
+      <div class="fork-desc">Wide-area surveillance with geo-referenced target cueing, change detection, and autonomous loiter — entirely GPS-denied, no datalink required.</div>
+      <ul class="fork-list">
+        <li>Persistent multi-target tracking with re-ID</li>
+        <li>Geo-referenced coordinates via TRN + Visual SLAM</li>
+        <li>Change detection between successive passes</li>
+        <li>Obstacle-aware loiter in denied airspace</li>
+        <li>On-board classification — no cloud dependency</li>
+        <li>Operates through GPS spoofing and RF jamming</li>
+      </ul>
+      <div class="m-badge">Geo-location &lt; 5m CEP GPS-denied</div>
+    </div>
+  </div>
+</section>
+ 
+<div class="glow-div"></div>
+ 
+<!-- SOVEREIGNTY -->
+<section>
+  <div class="stag">04 // Sovereignty</div>
+  <h2 class="stitle">NO FOREIGN<br>KILL-SWITCH.</h2>
+  <p class="sdesc">Every weight, every dataset, every algorithm — developed and owned domestically. VEGA operates under complete Indian sovereign control.</p>
+ 
+  <div class="sov-grid">
+    <div class="sov-item">
+      <span class="sov-val">0</span>
+      <div class="sov-label">ITAR / EAR Components</div>
+    </div>
+    <div class="sov-item">
+      <span class="sov-val">100%</span>
+      <div class="sov-label">Domestically Trained Models</div>
+    </div>
+    <div class="sov-item">
+      <span class="sov-val">0</span>
+      <div class="sov-label">Active RF Emissions</div>
+    </div>
+    <div class="sov-item">
+      <span class="sov-val">∞</span>
+      <div class="sov-label">Operational Independence</div>
+    </div>
+  </div>
+</section>
+ 
+<!-- ROADMAP -->
+<section id="roadmap" style="background:var(--ink2);border-top:1px solid var(--border)">
+  <div class="stag">05 // Development Roadmap</div>
+  <h2 class="stitle">36 MONTHS<br>TO FLIGHT</h2>
+ 
+  <div class="timeline">
+    <div class="phase">
+      <div><div class="pnum">01</div><div class="pperiod">M0 – M12</div></div>
+      <div>
+        <div class="pname">Perception Primitives</div>
+        <div class="pdesc">Monocular depth, visual odometry, and the sovereign dataset pipeline. The bedrock of the entire stack.</div>
+        <div class="pills">
+          <span class="pill">Metric Depth</span><span class="pill">Visual Odometry</span>
+          <span class="pill">IMU Preintegration</span><span class="pill">Terrain Datasets</span><span class="pill">HAL Design</span>
+        </div>
+        <div class="m-badge">VO drift &lt; 1% · Depth RMSE &lt; 0.5m</div>
+      </div>
+    </div>
+    <div class="phase">
+      <div><div class="pnum">02</div><div class="pperiod">M6 – M18</div></div>
+      <div>
+        <div class="pname">GPS-Denied Localisation</div>
+        <div class="pdesc">Visual SLAM, terrain-relative navigation, and recovery from EW blackout. Localise anywhere on the subcontinent without GPS.</div>
+        <div class="pills">
+          <span class="pill">DROID-SLAM</span><span class="pill">Terrain-Relative Nav</span>
+          <span class="pill">iSAM2</span><span class="pill">Loop Closure</span><span class="pill">EW Recovery</span>
+        </div>
+        <div class="m-badge">CEP &lt; 5m GPS-denied over 10 km</div>
+      </div>
+    </div>
+    <div class="phase">
+      <div><div class="pnum">03</div><div class="pperiod">M12 – M24</div></div>
+      <div>
+        <div class="pname">Obstacle-Aware Navigation</div>
+        <div class="pdesc">Time-to-collision detection, MPPI replanning, and real-time trajectory optimisation for high-speed CTOL airframes.</div>
+        <div class="pills">
+          <span class="pill">TTC Detection</span><span class="pill">MPPI</span>
+          <span class="pill">iLQR</span><span class="pill">Semantic Seg</span><span class="pill">Contingency Mgmt</span>
+        </div>
+        <div class="m-badge">Replan &lt; 80ms · Avoidance @ 120 km/h</div>
+      </div>
+    </div>
+    <div class="phase">
+      <div><div class="pnum">04</div><div class="pperiod">M18 – M30</div></div>
+      <div>
+        <div class="pname">Terminal Guidance</div>
+        <div class="pdesc">IBVS-driven precision homing. Detection, tracking, PnP geometry, and proportional navigation converge into millimetric accuracy.</div>
+        <div class="pills">
+          <span class="pill">YOLOv9</span><span class="pill">Siamese Tracker</span>
+          <span class="pill">IBVS</span><span class="pill">PnP Geometry</span><span class="pill">ProNav</span>
+        </div>
+        <div class="m-badge">CEP &lt; 0.5m @ 300m · Lock &lt; 1s</div>
+      </div>
+    </div>
+    <div class="phase" style="border-bottom:1px solid var(--bsoft)">
+      <div><div class="pnum">05</div><div class="pperiod">M24 – M36</div></div>
+      <div>
+        <div class="pname">Integration & Certification</div>
+        <div class="pdesc">HITL/HWIL validation, EW hardening, adversarial robustness training, and CEMILAC airworthiness. First live autonomy flight.</div>
+        <div class="pills">
+          <span class="pill">HITL Suite</span><span class="pill">EW Hardening</span>
+          <span class="pill">DO-178C Level B</span><span class="pill">CEMILAC</span><span class="pill">Tri-Service Demo</span>
+        </div>
+        <div class="m-badge">First live flight · CEMILAC SoA issued</div>
+      </div>
+    </div>
+  </div>
+</section>
+ 
+<!-- CONTACT -->
+<section id="contact" style="text-align:center;border-top:1px solid var(--border)">
+  <div class="stag" style="justify-content:center">06 // Engage</div>
+  <h2 class="stitle" style="text-align:center">READY FOR<br>INTEGRATION?</h2>
+  <p style="font-family:var(--Sf);font-style:italic;font-weight:300;color:var(--muted);max-width:460px;margin:1.5rem auto 3rem;line-height:1.75">
+    Rayfik Robotics briefs qualified defense primes, DRDO labs, and IDEX-funded ventures. Technical briefing available under NDA.
+  </p>
+  <a href="mailto:contact@rayfikrobotics.in" class="btn-primary">Request SDK Access ↗</a>
+</section>
+ 
+<!-- FOOTER -->
 <footer>
-    <div>RAYFIK ROBOTICS PERCEPTION DIV.</div>
-    <div>© 2026 // ALL RIGHTS RESERVED // ENCRYPTED CONNECTION</div>
+  <div class="fl">VEGA AUTONOMY STACK<br>RAYFIK ROBOTICS · 2026<br>CLASSIFIED DISTRIBUTION</div>
+  <div class="fc">
+    <div class="fn">VEGA</div>
+    <div class="fs">by Rayfik Robotics</div>
+  </div>
+  <div class="fr">© 2026 ALL RIGHTS RESERVED<br>INDIA-SOVEREIGN · ITAR-FREE<br>NO FOREIGN DEPENDENCIES</div>
 </footer>
-
+ 
 <script>
-// Logic to simulate data noise in the UI
-setInterval(() => {
-    const vals = document.querySelectorAll('.val');
-    vals.forEach(v => {
-        if(v.innerText.includes('%')) {
-            let n = (98 + Math.random()).toFixed(1);
-            v.innerText = n + '%';
-        }
-    });
-}, 2000);
+// Star field
+const s=document.getElementById('stars');
+for(let i=0;i<120;i++){
+  const el=document.createElement('div');
+  el.className='star';
+  const size=Math.random()*2+.5;
+  el.style.cssText=`
+    width:${size}px;height:${size}px;
+    top:${Math.random()*100}%;left:${Math.random()*100}%;
+    --lo:${(Math.random()*.15+.05).toFixed(2)};
+    --hi:${(Math.random()*.6+.3).toFixed(2)};
+    --d:${(Math.random()*4+2).toFixed(1)}s;
+    --dl:-${(Math.random()*4).toFixed(1)}s;
+  `;
+  s.appendChild(el);
+}
+ 
+// Lock label cycle
+const lbls=['ACQUIRING...','SCANNING...','TRACKING...','LOCK_ON: 93.1%','LOCK_ON: 96.7%','LOCK_ON: 98.9%','CONFIRMED ✓'];
+let li=0;
+const lel=document.getElementById('lock-lbl');
+setInterval(()=>{ li=(li+1)%lbls.length; lel.textContent=lbls[li]; },2000);
+ 
+// Confidence
+setInterval(()=>{
+  document.getElementById('conf').textContent=(96+Math.random()*3).toFixed(1);
+},1600);
+ 
+// Frame counter
+let f=441;
+setInterval(()=>{
+  f+=Math.floor(Math.random()*3)+1;
+  document.getElementById('frame').textContent=String(f).padStart(5,'0');
+},90);
 </script>
-
 </body>
 </html>
+ 
